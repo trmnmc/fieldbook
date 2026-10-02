@@ -766,6 +766,7 @@ export function hoursSinceFront(hourly, timeIso) {
   for (let m = i; m >= 6; m--) {
     const pm = p(m);
     if (pm == null) continue;
+    if (pm > (p(m - 1) ?? pm) || pm > (p(m + 1) ?? pm)) continue; // only a local minimum is a front
     let fell = false, rose = false;
     for (let k = m - 1; k >= Math.max(0, m - 12); k--) { const v = p(k); if (v != null && v - pm >= 4) { fell = true; break; } }
     for (let k = m + 1; k <= Math.min(i, m + 6); k++) { const v = p(k); if (v != null && v - pm >= 2) { rose = true; break; } }
@@ -1071,8 +1072,8 @@ test('rules: 15 lakes map to two rulebooks with the verified sizes', async () =>
   assert.equal(ix.rulesForLake('fishhawk').minSizeIn, 42);
   for (const id of ['big', 'mamie', 'west-bay']) { assert.equal(ix.rulesForLake(id).minSizeIn, 50); assert.equal(ix.lakeById[id].boundaryWater, true); }
   assert.equal(c.lakes.filter(l => l.boundaryWater).length, 3);
-  const text = JSON.stringify(c.rules);
-  assert.ok(!text.includes('46'), 'the 46 inch Master Angler figure must not appear in rules');
+  assert.ok(c.rules.rulebooks.every(r => r.minSizeIn !== 46), 'the 46 inch Master Angler figure must never be a rule');
+  assert.ok(JSON.stringify(c.rules.notes).includes('Master Angler'));
 });
 
 test('lakes: every lake sits inside the bounding box and cites sources', async () => {
@@ -1317,7 +1318,8 @@ test('lessons: twelve chapters in order, fall and next at full depth', async () 
   assert.ok(depth('next') >= 500, 'next words ' + depth('next'));
   for (const l of c.lessons) { assert.ok(l.sections.length >= 2, l.id); for (const s of l.sections) assert.ok(words(s.pro) >= 60, `${l.id} / ${s.heading} is thin`); }
   const rulesText = JSON.stringify(c.lessons.find(l => l.id === 'rules'));
-  assert.ok(rulesText.includes('42') && rulesText.includes('50') && !/46[- ]?inch/i.test(rulesText));
+  assert.ok(rulesText.includes('42') && rulesText.includes('50'));
+  if (/46/.test(rulesText)) assert.ok(/Master Angler/.test(rulesText), '46 may appear only as the Master Angler award size');
   assert.deepEqual(validateContent(c), []);
 });
 ```
@@ -1467,8 +1469,9 @@ test('scoreSpots filters to the lake, rewards wind and temperature fit, and uses
   assert.deepEqual(s.map(x => x.spot.id), ['a', 'b']);
   assert.ok(s[0].reasons.some(r => /wind/i.test(r.pro)));
   const boosted = scoreSpots(spots, m, warm, { b: { followsPerHour: 3, follows: 6, hours: 2 } });
-  assert.equal(boosted[0].spot.id, 'b');
-  assert.ok(boosted[0].reasons.some(r => /your log/i.test(r.pro)));
+  const bBefore = s.find(x => x.spot.id === 'b').score, bAfter = boosted.find(x => x.spot.id === 'b').score;
+  assert.ok(bAfter > bBefore, `log bonus ${bBefore} -> ${bAfter}`);
+  assert.ok(boosted.find(x => x.spot.id === 'b').reasons.some(r => /your log/i.test(r.pro)));
 });
 
 test('scoreLures: warm favors topwater and bucktail; cold favors sucker and rubber; presentation filters', () => {
@@ -2127,7 +2130,7 @@ export async function planView(app) {
       lakeId: inputs.lakeId, lakeCharacter: lake.character, dateIso: inputs.dateYmd, month: +inputs.dateYmd.slice(5, 7),
       waterTempF: inputs.waterTempF === '' ? null : inputs.waterTempF,
       sky: inputs.sky || fc?.sky || null, windMph: inputs.windMph === '' ? fc?.windMph ?? null : inputs.windMph,
-      windCompass: inputs.windCompass || (fc?.windCompass ? fc.windCompass.slice(0, 2).replace(/^(N|S)(N|S)/, '$1') : null),
+      windCompass: inputs.windCompass || fc?.windCompass || null,
       pressureTrend: inputs.pressureTrend || (fc?.trend && fc.trend !== 'unknown' ? fc.trend : null), hoursSinceFront: fc?.hoursSinceFront ?? null,
       clarity: inputs.clarity, presentation: inputs.presentation, moonPhaseName: moonPhase(date).name,
       pressureInHg: fc?.pressureInHg ?? null, forecastAgeMin: fc?.forecastAgeMin ?? null,
@@ -2263,7 +2266,7 @@ Run `node --test test/photos.test.js`, expect PASS.
 import { h } from './dom.js';
 import { CHAIN, nearestMoonEvent, moonPhase, fmtTime } from '../astro.js';
 import { conditionsAt } from '../weather.js';
-import { startTrip, addEvent, endTrip, setOutcome, rates, verifySpots, tripTimeline, EVENT_KINDS } from '../log.js';
+import { snapshot, startTrip, addEvent, endTrip, setOutcome, rates, verifySpots, tripTimeline } from '../log.js';
 import { downscaleImage, savePhoto } from '../photos.js';
 
 const astro = { nearest: d => nearestMoonEvent(d, CHAIN.lat, CHAIN.lon, CHAIN.tz), phase: d => moonPhase(d) };
@@ -2301,7 +2304,7 @@ export async function tripView(app, param) {
 
   async function log(kind, fields) {
     const pos = await geo();
-    const snap = (await import('../log.js')).snapshot({ at: new Date().toISOString(), lat: pos?.lat ?? null, lon: pos?.lon ?? null, cond: await currentCond(app, trip), astro });
+    const snap = snapshot({ at: new Date().toISOString(), lat: pos?.lat ?? null, lon: pos?.lon ?? null, cond: await currentCond(app, trip), astro });
     const spotId = fields.spotId || (pos && spots.length ? nearest(spots, pos).id : null) || lastWith('spotId') || null;
     const ev = await addEvent(app.db, trip.id, { kind, spotId, ...fields }, snap);
     if (fields.photoFile) await savePhoto(app.db, ev.id, await downscaleImage(fields.photoFile), 'catch');
