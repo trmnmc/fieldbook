@@ -96,3 +96,10 @@ test('content never points at a home water, a home dock, or where anyone lives',
   const hit = JSON.stringify(c).match(/home water|home dock|lives on|my dock|our dock/i);
   assert.equal(hit, null, hit && hit[0]);
 });
+
+test('loadContent includes the lake outlines under lakeOutlines', async () => {
+  const c = await loadContent(fetchFn);
+  assert.equal(c.lakeOutlines.kind, 'lake-outlines');
+  assert.equal(c.lakeOutlines.lakes.length, c.lakes.length);
+  assert.deepEqual(validateContent(c), []);
+});

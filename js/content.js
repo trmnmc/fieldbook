@@ -1,12 +1,13 @@
 export const CHAIN_BBOX = { latMin: 46.15, latMax: 46.30, lonMin: -89.50, lonMax: -89.33 };
-const FILES = ['sources', 'rules', 'lakes', 'spot-types', 'lures', 'patterns', 'lessons'];
+const FILES = ['sources', 'rules', 'lakes', 'lake-outlines', 'spot-types', 'lures', 'patterns', 'lessons'];
+const KEYS = { 'spot-types': 'spotTypes', 'lake-outlines': 'lakeOutlines' };
 
 export async function loadContent(fetchFn, base = 'content/') {
   const out = {};
   for (const f of FILES) {
     const r = await fetchFn(base + f + '.json');
     if (!r.ok) throw new Error('content load failed: ' + f);
-    out[f === 'spot-types' ? 'spotTypes' : f] = await r.json();
+    out[KEYS[f] || f] = await r.json();
   }
   return out;
 }

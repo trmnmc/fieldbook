@@ -218,12 +218,14 @@ One record per rulebook: Michigan inland, Michigan-Wisconsin boundary waters, wi
 
 | Input | Source | Default |
 |---|---|---|
-| lake | user | last used |
+| lake | user, or one tap on "Use my location": the lake whose OSM outline (`content/lake-outlines.json`) contains the GPS fix, else the nearest lake within 800 m, else unchanged | last used |
 | date | user | today |
 | water temperature | user, from the fish finder | last entered for that lake |
 | sky | forecast, user can override | forecast |
 | wind speed and direction | forecast, user can override | forecast |
-| pressure and 3-hour trend | forecast history | forecast |
+| pressure and 3-hour trend | forecast history, user can override the trend | forecast |
+
+The four forecast boxes show the forecast value with a "forecast" tag. A typed value shows a "yours" tag; clearing the box returns it to the forecast. Today reads the current hour; another date reads noon. The plan view refreshes the forecast when the last one is more than 30 minutes old. After a GPS tap, each spot in the plan shows its distance and direction from the boat and an "Open in Maps" link to Apple Maps.
 | hours since last front | computed from pressure and wind history, user can override | computed |
 | water clarity | user | last entered for that lake |
 | presentation | user: casting, trolling, suckers, any | any |
