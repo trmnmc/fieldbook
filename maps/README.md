@@ -1,0 +1,1 @@
+Depth maps downscaled from Michigan DNR and Wisconsin DNR PDFs. Public data. File name is the lake id. Long edge 1600 px, JPEG quality 70. See Task 14 of the implementation plan for how each was obtained.
