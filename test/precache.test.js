@@ -13,7 +13,7 @@ async function walk(dir, base = '') {
 }
 
 test('listPublished keeps app files and drops test, scripts, docs, private, git', () => {
-  const r = listPublished(['index.html', 'js/app.js', 'content/lakes.json', 'maps/cisco.jpg', 'test/x.test.js', 'scripts/precache.js', 'docs/a.md', 'private/spots-seed.json', '.git/HEAD', '.git', '.superpowers/sdd/x/progress.md', '.claude/launch.json', '.gitignore', 'package.json', 'README.md', 'sw.js', 'js/precache-manifest.js', '.DS_Store', 'icons/icon.svg']);
+  const r = listPublished(['index.html', 'js/app.js', 'content/lakes.json', 'maps/cisco.jpg', 'test/x.test.js', 'scripts/precache.js', 'docs/a.md', 'plans/handoffs/h.md', 'private/spots-seed.json', '.git/HEAD', '.git', '.superpowers/sdd/x/progress.md', '.claude/launch.json', '.gitignore', 'package.json', 'README.md', 'sw.js', 'js/precache-manifest.js', '.DS_Store', 'icons/icon.svg']);
   assert.deepEqual(r.sort(), ['content/lakes.json', 'icons/icon.svg', 'index.html', 'js/app.js', 'js/precache-manifest.js', 'maps/cisco.jpg'].sort());
 });
 

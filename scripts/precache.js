@@ -1,7 +1,7 @@
 import { readdir, writeFile } from 'node:fs/promises';
 import { execSync } from 'node:child_process';
 
-const DROP = [/^test\//, /^scripts\//, /^docs\//, /^private\//, /^\.git(\/|$)/, /^\.superpowers\//, /^\.claude\//, /^\.gitignore$/, /^package(-lock)?\.json$/, /^README\.md$/, /^sw\.js$/, /^\.DS_Store$/, /\/\.DS_Store$/, /^maps\/README\.md$/];
+const DROP = [/^test\//, /^scripts\//, /^docs\//, /^plans\//, /^private\//, /^\.git(\/|$)/, /^\.superpowers\//, /^\.claude\//, /^\.gitignore$/, /^package(-lock)?\.json$/, /^README\.md$/, /^sw\.js$/, /^\.DS_Store$/, /\/\.DS_Store$/, /^maps\/README\.md$/];
 export function listPublished(paths) { return paths.filter(p => !DROP.some(r => r.test(p))); }
 
 async function walk(dir = '.', base = '') {
