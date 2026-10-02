@@ -87,7 +87,9 @@ export function hoursSinceFront(hourly, timeIso) {
 export function conditionsAt(forecast, timeIso) {
   const hourly = forecast.hourly;
   const i = idx(hourly, timeIso);
-  const h = i >= 0 ? hourly[i] : {};
+  // null when the time is before the first row or more than an hour past the last: there is no forecast for it
+  if (i < 0 || (i === hourly.length - 1 && timeIso.slice(0, 13) > hourly[i].time.slice(0, 13))) return null;
+  const h = hourly[i];
   const trend = pressureTrend(hourly, timeIso);
   const cloud = h.cloudPct;
   return {

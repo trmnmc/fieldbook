@@ -108,3 +108,11 @@ test('fetchForecast falls back to NWS when Open-Meteo fails', async () => {
   assert.equal(calls.length, 2);
   await assert.rejects(fetchForecast(async () => ({ ok: false, status: 500 }), { lat: 1, lon: 1 }));
 });
+
+test('conditionsAt returns null for a time outside the forecast span instead of the last row', () => {
+  const f = parseOpenMeteo(fixture);
+  assert.equal(conditionsAt(f, '2026-10-06T12:00'), null); // four days past the last row
+  assert.equal(conditionsAt(f, '2026-10-03T00:30'), null); // more than an hour past the last row
+  assert.equal(conditionsAt(f, '2026-09-30T12:00'), null); // before the first row
+  assert.ok(conditionsAt(f, '2026-10-02T23:45') !== null);  // inside the last hour
+});

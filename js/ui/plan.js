@@ -14,7 +14,10 @@ export async function planView(app) {
   const lakeId = saved.lakeId || 'thousand-island';
   const todayYmd = localDayBounds(new Date(), CHAIN.tz).ymd;
   const inputs = { dateYmd: saved.dateYmd && saved.dateYmd >= todayYmd ? saved.dateYmd : todayYmd, lakeId, waterTempF: (await app.settings.get('waterTemp:' + lakeId)) ?? '', sky: saved.sky || '', windMph: saved.windMph ?? '', windCompass: saved.windCompass || '', pressureTrend: saved.pressureTrend || '', clarity: saved.clarity || 'clear', presentation: saved.presentation || 'any', hoursSinceFront: '' };
-  const fc = app.forecast ? conditionsAt(app.forecast, inputs.dateYmd + 'T12:00') : null;
+  const fcFor = () => app.forecast ? conditionsAt(app.forecast, inputs.dateYmd + 'T12:00') : null; // null past the forecast horizon
+  let fc = fcFor();
+  const fcText = () => fc ? `Forecast ${app.forecast.source}, ${fc.forecastAgeMin} min old: ${fc.tempF ?? '?'}°F air, wind ${fc.windMph ?? '?'} mph from ${fc.windCompass || '?'}, pressure ${fc.pressureInHg ?? '?'} inHg ${fc.trend}. Blank fields use it.` : app.forecast ? 'No forecast for this date. Fill the fields from what you see.' : 'No forecast. Fill the fields from what you see.';
+  const fcLine = h('p', { class: 'reason' }, fcText());
   const results = h('div');
   const field = (label, el) => h('div', {}, h('label', {}, label), el);
   const sel = (name, opts, val, labels = {}) => h('select', { name, onchange: e => { inputs[name] = e.target.value; } }, opts.map(o => h('option', { value: o, selected: o === val ? true : null }, labels[o] || o || 'from forecast')));
@@ -23,7 +26,7 @@ export async function planView(app) {
   const form = h('div', { class: 'card' },
     h('h2', {}, 'Plan an outing'),
     field('Lake', h('select', { onchange: async e => { inputs.lakeId = e.target.value; inputs.waterTempF = (await app.settings.get('waterTemp:' + inputs.lakeId)) ?? ''; form.querySelector('[name=waterTempF]').value = inputs.waterTempF; } }, lakes.map(l => h('option', { value: l.id, selected: l.id === inputs.lakeId ? true : null }, l.name + (l.boundaryWater ? ' (boundary, 50")' : ''))))),
-    field('Date', h('input', { type: 'date', value: inputs.dateYmd, onchange: e => { inputs.dateYmd = e.target.value; } })),
+    field('Date', h('input', { type: 'date', value: inputs.dateYmd, onchange: e => { inputs.dateYmd = e.target.value; fc = fcFor(); fcLine.textContent = fcText(); } })),
     field('Water temperature °F, from the fish finder', num('waterTempF', inputs.waterTempF, 'e.g. 62')),
     h('div', { class: 'grid2' },
       field('Sky', sel('sky', ['', ...SKIES], inputs.sky, { sun: 'sun', partly: 'partly cloudy', overcast: 'overcast' })),
@@ -33,11 +36,12 @@ export async function planView(app) {
       field('Clarity', sel('clarity', CLARITY, inputs.clarity)),
       field('Presentation', sel('presentation', PRES, inputs.presentation)),
     ),
-    h('p', { class: 'reason' }, fc ? `Forecast ${app.forecast.source}, ${fc.forecastAgeMin} min old: ${fc.tempF ?? '?'}°F air, wind ${fc.windMph ?? '?'} mph from ${fc.windCompass || '?'}, pressure ${fc.pressureInHg ?? '?'} inHg ${fc.trend}. Blank fields use it.` : 'No forecast. Fill the fields from what you see.'),
+    fcLine,
     h('button', { onclick: () => build() }, 'Build the plan'),
   );
 
   async function build() {
+    fc = fcFor();
     const date = new Date(inputs.dateYmd + 'T12:00:00');
     const lake = app.index.lakeById[inputs.lakeId];
     const cond = {

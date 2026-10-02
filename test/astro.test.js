@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CHAIN, tzOffsetMinutes, localDayBounds, sunTimes, moonPhase, moonEvents, windows, nearestMoonEvent, fmtTime } from '../js/astro.js';
+import * as astroMod from '../js/astro.js';
 
 const { lat, lon, tz } = CHAIN;
 const minutesOff = (d, hhmm) => {
@@ -75,4 +76,30 @@ test('nearestMoonEvent is signed and finds events across midnight', () => {
 
 test('fmtTime renders local time', () => {
   assert.equal(fmtTime(new Date('2026-10-02T23:20:00Z'), tz), '6:20 pm');
+});
+
+test('localKey renders an instant as the chain wall-clock key the forecast rows use', () => {
+  assert.equal(astroMod.localKey(new Date('2026-10-03T23:30:00Z')), '2026-10-03T18:30'); // CDT
+  assert.equal(astroMod.localKey(new Date('2026-12-03T23:30:00Z')), '2026-12-03T17:30'); // CST
+  assert.equal(astroMod.localKey(new Date('2026-10-04T03:10:00Z')), '2026-10-03T22:10'); // the UTC date has already rolled over
+});
+
+test('fmtDate gives the local calendar date, not the UTC one', () => {
+  assert.equal(astroMod.fmtDate(new Date('2026-10-04T01:00:00Z')), '2026-10-03'); // 8 pm CDT on Oct 3
+  assert.equal(astroMod.fmtDate(new Date('2026-10-03T12:00:00Z')), '2026-10-03');
+});
+
+test('moon events on DST days are neither skipped nor duplicated and stay inside the local day', () => {
+  // 2027-11-07 is a 25-hour day; the moon sets at 12:46 am CDT, inside the hour a 24-hour scan from CST midnight misses
+  const long = new Date('2027-11-07T18:00:00Z');
+  const set = moonEvents(long, lat, lon, tz).find(e => e.kind === 'moonset');
+  assert.ok(set, 'moonset skipped');
+  assert.equal(set.at.toISOString().slice(0, 16), '2027-11-07T05:46');
+  for (const d of [long, new Date('2026-11-01T18:00:00Z'), new Date('2027-03-14T18:00:00Z')]) {
+    const { start, end } = localDayBounds(d, tz);
+    const list = moonEvents(d, lat, lon, tz);
+    for (const e of list) assert.ok(e.at >= start && e.at < end, `${e.kind} outside ${d.toISOString().slice(0, 10)}`);
+    const keys = list.map(e => e.kind + ':' + Math.round(e.at.getTime() / 60000));
+    assert.equal(new Set(keys).size, keys.length, 'duplicated on ' + d.toISOString().slice(0, 10));
+  }
 });

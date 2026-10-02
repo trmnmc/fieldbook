@@ -37,6 +37,17 @@ export function fmtTime(date, tz = CHAIN.tz) {
   return s.replace(' AM', ' am').replace(' PM', ' pm');
 }
 
+// wall-clock key in the chain zone, the same shape Open-Meteo rows use (YYYY-MM-DDTHH:MM)
+export function localKey(date, tz = CHAIN.tz) {
+  const p = parts(date, tz);
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}`;
+}
+
+export function fmtDate(date, tz = CHAIN.tz) {
+  const p = parts(date, tz);
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+}
+
 function noonOf(date, tz) {
   const { start } = localDayBounds(date, tz);
   return new Date(start.getTime() + 12 * 60 * MIN);
@@ -55,15 +66,25 @@ export function moonPhase(date) {
   return { phase: i.phase, fraction: i.fraction, waxing: i.waxing, name: PHASE_NAMES[Math.round(i.phase * 8) % 8] };
 }
 
+const MOON_KEYS = [['rise', 'moonrise'], ['set', 'moonset'], ['transit', 'overhead'], ['lowerTransit', 'underfoot']];
+
 export function moonEvents(date, lat = CHAIN.lat, lon = CHAIN.lon, tz = CHAIN.tz) {
-  const noon = noonOf(date, tz);
-  const m = getMoonTimes(noon, lat, lon, tzOffsetMinutes(noon, tz));
-  const ev = [];
-  if (m.rise) ev.push({ kind: 'moonrise', at: m.rise });
-  if (m.set) ev.push({ kind: 'moonset', at: m.set });
-  if (m.transit) ev.push({ kind: 'overhead', at: m.transit });
-  if (m.lowerTransit) ev.push({ kind: 'underfoot', at: m.lowerTransit });
-  return ev.sort((a, b) => a.at - b.at);
+  // scan from local midnight with the offset in force at that instant; a 25-hour day gets a second
+  // scan from 24 h later so its last hour is covered; keep only events inside [start, end)
+  const { start, end } = localDayBounds(date, tz);
+  const anchors = [start];
+  if (end - start > 24 * 60 * MIN) anchors.push(new Date(start.getTime() + 24 * 60 * MIN));
+  const seen = new Map();
+  for (const anchor of anchors) {
+    const m = getMoonTimes(anchor, lat, lon, tzOffsetMinutes(anchor, tz));
+    for (const [key, kind] of MOON_KEYS) {
+      const at = m[key];
+      if (!at || at < start || at >= end) continue;
+      const k = kind + ':' + Math.round(at.getTime() / MIN);
+      if (!seen.has(k)) seen.set(k, { kind, at });
+    }
+  }
+  return [...seen.values()].sort((a, b) => a.at - b.at);
 }
 
 const LABEL = { moonrise: 'Moonrise', moonset: 'Moonset', overhead: 'Moon overhead', underfoot: 'Moon underfoot' };

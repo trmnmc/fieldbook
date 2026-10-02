@@ -1,7 +1,7 @@
 import { h } from './dom.js';
-import { CHAIN, nearestMoonEvent, moonPhase, fmtTime } from '../astro.js';
+import { CHAIN, nearestMoonEvent, moonPhase, fmtTime, fmtDate, localKey } from '../astro.js';
 import { conditionsAt } from '../weather.js';
-import { snapshot, startTrip, addEvent, endTrip, setOutcome, rates, verifySpots, tripTimeline } from '../log.js';
+import { snapshot, startTrip, addEvent, endTrip, setOutcome, rates, verifySpots, tripTimeline, nearestSpot } from '../log.js';
 import { downscaleImage, savePhoto } from '../photos.js';
 
 const astro = { nearest: d => nearestMoonEvent(d, CHAIN.lat, CHAIN.lon, CHAIN.tz), phase: d => moonPhase(d) };
@@ -12,7 +12,7 @@ async function geo() { return new Promise(res => { if (!navigator.geolocation) r
 
 async function currentCond(app, trip) {
   const base = trip.cond || {};
-  const fc = app.forecast ? conditionsAt(app.forecast, new Date().toISOString().slice(0, 16)) : null;
+  const fc = app.forecast ? conditionsAt(app.forecast, localKey(new Date())) : null; // forecast rows are chain wall-clock, never UTC
   return { ...base, pressureInHg: fc?.pressureInHg ?? base.pressureInHg ?? null, pressureTrend: fc?.trend ?? base.pressureTrend ?? null, windMph: fc?.windMph ?? base.windMph ?? null, windCompass: fc?.windCompass ?? base.windCompass ?? null, sky: base.sky || fc?.sky || null, forecastAgeMin: fc?.forecastAgeMin ?? null };
 }
 
@@ -26,7 +26,7 @@ export async function tripView(app, param) {
     const t = await startTrip(app.db, { lakeId: last.cond.lakeId, plan: last.plan, cond: last.cond, presentation: last.cond.presentation });
     location.hash = '#trip/' + t.id; return h('div');
   }
-  if (!param) return h('div', {}, open ? h('a', { class: 'btn', href: '#trip/' + open.id, style: 'display:block;text-align:center' }, 'Continue trip') : h('a', { class: 'btn', href: '#plan', style: 'display:block;text-align:center' }, 'Plan first, then start a trip'), h('div', { class: 'card' }, h('h2', {}, 'Past trips'), trips.filter(t => t.endedAt).map(t => h('a', { href: '#trip/' + t.id, style: 'display:block;padding:8px 0' }, `${t.startedAt.slice(0, 10)} ${app.index.lakeById[t.lakeId]?.name || t.lakeId}`, t.rating ? h('span', { class: 'badge' }, '★ ' + t.rating) : null))));
+  if (!param) return h('div', {}, open ? h('a', { class: 'btn', href: '#trip/' + open.id, style: 'display:block;text-align:center' }, 'Continue trip') : h('a', { class: 'btn', href: '#plan', style: 'display:block;text-align:center' }, 'Plan first, then start a trip'), h('div', { class: 'card' }, h('h2', {}, 'Past trips'), trips.filter(t => t.endedAt).map(t => h('a', { href: '#trip/' + t.id, style: 'display:block;padding:8px 0' }, `${fmtDate(new Date(t.startedAt))} ${app.index.lakeById[t.lakeId]?.name || t.lakeId}`, t.rating ? h('span', { class: 'badge' }, '★ ' + t.rating) : null))));
   const trip = await app.db.get('trips', param);
   if (!trip) return h('div', { class: 'card' }, 'No such trip.');
   const spots = (await app.getSpots()).filter(s => s.lakeId === trip.lakeId);
@@ -40,13 +40,14 @@ export async function tripView(app, param) {
   async function log(kind, fields) {
     const pos = await geo();
     const snap = snapshot({ at: new Date().toISOString(), lat: pos?.lat ?? null, lon: pos?.lon ?? null, cond: await currentCond(app, trip), astro });
-    const spotId = fields.spotId || (pos && spots.length ? nearest(spots, pos).id : null) || lastWith('spotId') || null;
-    const ev = await addEvent(app.db, trip.id, { kind, spotId, ...fields }, snap);
-    if (fields.photoFile) await savePhoto(app.db, ev.id, await downscaleImage(fields.photoFile), 'catch');
-    if (fields.marksFile) await savePhoto(app.db, ev.id, await downscaleImage(fields.marksFile), 'marks');
+    // picked spot, else the seeded spot within 250 m of the phone, else the last spot used; never a spot a mile away
+    const spotId = fields.spotId || (pos ? nearestSpot(spots, pos)?.id : null) || lastWith('spotId') || null;
+    const { photoFile, marksFile, ...rest } = fields;
+    const ev = await addEvent(app.db, trip.id, { kind, ...rest, spotId }, snap);
+    if (photoFile) await savePhoto(app.db, ev.id, await downscaleImage(photoFile), 'catch');
+    if (marksFile) await savePhoto(app.db, ev.id, await downscaleImage(marksFile), 'marks');
     rerender();
   }
-  const nearest = (list, p) => list.reduce((b, s) => { const d = (s.lat - p.lat) ** 2 + (s.lon - p.lon) ** 2; return !b || d < b.d ? { ...s, d } : b; }, null);
 
   const spotSel = cur => h('select', { name: 'spotId' }, h('option', { value: '' }, 'nearest / unknown'), spots.map(s => h('option', { value: s.id, selected: s.id === cur ? true : null }, s.name)));
   const lureSel = cur => h('select', { name: 'lureId' }, lures.map(l => h('option', { value: l.id, selected: l.id === cur ? true : null }, l.example)));
@@ -64,7 +65,7 @@ export async function tripView(app, param) {
 
   const r = rates(events, trip);
   const perHour = v => v.hours >= 0.25 ? v.followsPerHour.toFixed(2) : '–';
-  const summary = h('div', { class: 'card' }, h('h3', {}, `${app.index.lakeById[trip.lakeId]?.name} · ${trip.startedAt.slice(0, 10)}`), h('p', {}, `${r.total.hours.toFixed(1)} h · ${r.total.follows} follows · ${r.total.catches} catches · ${perHour(r.total)} follows/h`), Object.entries(r.bySpot).map(([id, v]) => h('p', { class: 'reason' }, `${spots.find(s => s.id === id)?.name || 'no spot'}: ${v.hours.toFixed(1)} h, ${v.follows} follows, ${v.catches} catches, ${perHour(v)}/h`)), Object.entries(r.byLure).map(([id, v]) => h('p', { class: 'reason' }, `${lures.find(l => l.id === id)?.example || id}: ${v.follows} follows, ${v.strikes} strikes, ${v.catches} catches`)));
+  const summary = h('div', { class: 'card' }, h('h3', {}, `${app.index.lakeById[trip.lakeId]?.name} · ${fmtDate(new Date(trip.startedAt))}`), h('p', {}, `${r.total.hours.toFixed(1)} h · ${r.total.follows} follows · ${r.total.catches} catches · ${perHour(r.total)} follows/h`), Object.entries(r.bySpot).map(([id, v]) => h('p', { class: 'reason' }, `${spots.find(s => s.id === id)?.name || 'no spot'}: ${v.hours.toFixed(1)} h, ${v.follows} follows, ${v.catches} catches, ${perHour(v)}/h`)), Object.entries(r.byLure).map(([id, v]) => h('p', { class: 'reason' }, `${lures.find(l => l.id === id)?.example || id}: ${v.follows} follows, ${v.strikes} strikes, ${v.catches} catches`)));
 
   const planCard = trip.plan ? h('div', { class: 'card' }, h('h3', {}, 'The plan said'), h('p', {}, trip.plan.watchFor), (trip.plan.windows || []).filter(w => w.score > 0).slice(0, 3).map(w => h('p', { class: 'reason' }, `${fmtTime(new Date(w.start))} to ${fmtTime(new Date(w.end))} ${w.label}`)), (trip.plan.spots || []).slice(0, 3).map(s => h('p', { class: 'reason' }, 'Spot: ' + s.name)), (trip.plan.lures || []).map(l => h('p', { class: 'reason' }, 'Lure: ' + (lures.find(x => x.id === l.id)?.example || l.id)))) : null;
 
