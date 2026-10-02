@@ -55,7 +55,7 @@ async function boot() {
   if ('serviceWorker' in navigator) {
     document.getElementById('reload').onclick = () => location.reload();
     try {
-      const reg = await navigator.serviceWorker.register('sw.js');
+      const reg = await navigator.serviceWorker.register('sw.js', { type: 'module' });
       reg.addEventListener('updatefound', () => { const w = reg.installing; w?.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) document.getElementById('banner').hidden = false; }); });
     } catch (e) { console.warn('service worker not registered', e.message); }
   }
