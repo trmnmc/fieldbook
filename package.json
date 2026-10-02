@@ -1,0 +1,9 @@
+{
+  "name": "fieldbook",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/",
+    "precache": "node scripts/precache.js"
+  }
+}
