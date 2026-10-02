@@ -37,7 +37,7 @@ export async function planView(app) {
   const fcLine = h('p', { class: 'reason' }, fcText());
   const results = h('div');
   const tags = {};
-  const field = (label, el, name) => { const tag = h('span', { class: 'badge' }); if (name) tags[name] = tag; return h('div', {}, h('label', {}, label, tag), el); };
+  const field = (label, el, name) => { const tag = name ? (tags[name] = h('span', { class: 'badge' })) : null; return h('div', {}, h('label', {}, label, tag), el); };
   const sel = (name, opts, val, labels = {}) => h('select', { name, onchange: e => { inputs[name] = e.target.value; applyFill(); } }, opts.map(o => h('option', { value: o, selected: o === val ? true : null }, labels[o] || o || 'from forecast')));
   const num = (name, val, ph) => h('input', { name, type: 'number', inputmode: 'decimal', placeholder: ph, value: val, oninput: e => { inputs[name] = e.target.value === '' ? '' : Number(e.target.value); if (FILLED.includes(name)) applyFill(e.target); }, onchange: () => { if (FILLED.includes(name)) applyFill(); } });
 
@@ -49,7 +49,7 @@ export async function planView(app) {
     for (const name of FILLED) {
       const el = form.querySelector(`[name=${name}]`), f = fill[name];
       if (el && el !== skipEl) el.value = f.value ?? '';
-      tags[name].textContent = f.source || ''; tags[name].hidden = !f.source;
+      tags[name].textContent = f.source || '';
     }
   }
 
@@ -119,16 +119,16 @@ export async function planView(app) {
   // where the spot is: distance and direction from the last GPS tap, and a pin in Apple Maps
   function whereIs(spot) {
     if (spot.lat == null || spot.lon == null) return null;
-    return h('p', { class: 'reason' }, app.pos ? offsetText(app.pos, spot) + ' · ' : null, h('a', { href: appleMapsUrl(spot), target: '_blank', rel: 'noopener' }, 'Open in Maps'));
+    return h('p', { class: 'reason' }, app.pos ? offsetText(app.pos, spot) + ' · ' : null, h('a', { class: 'link', href: appleMapsUrl(spot), target: '_blank', rel: 'noopener' }, 'Open in Maps'));
   }
 
   function render(p, cond, lake, spotCount) {
     results.replaceChildren(...[
       p.errors.length ? h('div', { class: 'card unverified' }, h('h3', {}, 'Fix the inputs'), p.errors.map(e => h('p', {}, e))) : null,
-      !p.errors.length ? h('div', { class: 'card' }, h('h3', {}, lake.name), h('p', { class: 'reason' }, `Rule here: ${app.index.rulesForLake(lake.id).minSizeIn}" minimum. ${app.index.rulesForLake(lake.id).season}`), h('p', { class: 'big' }, 'Watch for'), h('p', {}, p.watchFor), h('a', { href: '#lakes/' + lake.id }, 'Lake notes')) : null,
-      !p.errors.length ? h('div', { class: 'card' }, h('h3', {}, 'Windows'), p.windows.filter(w => w.score > 0).slice(0, 5).map(w => h('div', {}, h('p', { class: 'big' }, `${fmtTime(w.window.start)} to ${fmtTime(w.window.end)}  ${w.window.label}`), w.stacks.length ? h('p', { class: 'reason' }, 'Stacks with ' + w.stacks.join(', ')) : null, reasons(w.reasons)))) : null,
-      !p.errors.length ? h('div', { class: 'card' }, h('h3', {}, 'Spots'), spotCount === 0 ? h('p', {}, 'No spots on this lake yet. Import the spots pack in Settings or add spots from a trip.') : p.spots.map(s => h('div', { class: s.spot.verified ? 'verified' : 'unverified' }, h('p', { class: 'big' }, s.spot.name, h('span', { class: 'badge' }, app.index.spotTypeById[s.spot.type]?.name || s.spot.type), s.spot.verified ? null : h('span', { class: 'badge warn' }, 'unverified')), whereIs(s.spot), reasons(s.reasons)))) : null,
-      !p.errors.length ? h('div', { class: 'card' }, h('h3', {}, 'Lures'), p.lures.map(l => h('div', {}, h('p', { class: 'big' }, l.lure.example), h('p', {}, l.lure.retrieve), reasons(l.reasons)))) : null,
+      !p.errors.length ? h('div', { class: 'card' }, h('h3', {}, lake.name), h('p', { class: 'reason' }, `Rule here: ${app.index.rulesForLake(lake.id).minSizeIn}" minimum. ${app.index.rulesForLake(lake.id).season}`), h('p', { class: 'eyebrow' }, 'Watch for'), h('p', { class: 'lead' }, p.watchFor), h('a', { class: 'link', href: '#lakes/' + lake.id }, 'Lake notes')) : null,
+      !p.errors.length ? h('div', { class: 'card' }, h('h3', {}, 'Windows'), p.windows.filter(w => w.score > 0).slice(0, 5).map(w => h('div', { class: 'item' }, h('p', { class: 'big' }, `${fmtTime(w.window.start)} to ${fmtTime(w.window.end)}  ${w.window.label}`), w.stacks.length ? h('p', { class: 'reason' }, 'Stacks with ' + w.stacks.join(', ')) : null, reasons(w.reasons)))) : null,
+      !p.errors.length ? h('div', { class: 'card' }, h('h3', {}, 'Spots'), spotCount === 0 ? h('p', {}, 'No spots on this lake yet. Import the spots pack in Settings or add spots from a trip.') : p.spots.map(s => h('div', { class: s.spot.verified ? 'item verified' : 'item unverified' }, h('p', { class: 'big' }, s.spot.name, h('span', { class: 'badge' }, app.index.spotTypeById[s.spot.type]?.name || s.spot.type), s.spot.verified ? null : h('span', { class: 'badge warn' }, 'unverified')), whereIs(s.spot), reasons(s.reasons)))) : null,
+      !p.errors.length ? h('div', { class: 'card' }, h('h3', {}, 'Lures'), p.lures.map(l => h('div', { class: 'item' }, h('p', { class: 'big' }, l.lure.example), h('p', {}, l.lure.retrieve), reasons(l.reasons)))) : null,
       !p.errors.length ? h('button', { onclick: () => { location.hash = '#trip/new'; } }, 'Start trip with this plan') : null,
     ].filter(Boolean));
   }
