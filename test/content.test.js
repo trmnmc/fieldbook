@@ -74,3 +74,19 @@ test('patterns: at least 12 fall rules, each with pro, yourJob, and sources or r
   }
   assert.deepEqual(validateContent(c), []);
 });
+
+test('lessons: twelve chapters in order, fall and next at full depth', async () => {
+  const c = await loadContent(fetchFn);
+  assert.deepEqual(c.lessons.map(l => l.id), ['fish', 'chain', 'seasons', 'clock', 'weather', 'structure', 'lures', 'presentation', 'gear', 'rules', 'first-mate', 'next']);
+  assert.deepEqual(c.lessons.map(l => l.order), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  const words = s => s.split(/\s+/).length;
+  const depth = id => c.lessons.find(l => l.id === id).sections.reduce((n, s) => n + words(s.pro), 0);
+  assert.ok(depth('seasons') >= 900, 'seasons words ' + depth('seasons'));
+  assert.ok(depth('chain') >= 600, 'chain words ' + depth('chain'));
+  assert.ok(depth('next') >= 500, 'next words ' + depth('next'));
+  for (const l of c.lessons) { assert.ok(l.sections.length >= 2, l.id); for (const s of l.sections) assert.ok(words(s.pro) >= 60, `${l.id} / ${s.heading} is thin`); }
+  const rulesText = JSON.stringify(c.lessons.find(l => l.id === 'rules'));
+  assert.ok(rulesText.includes('42') && rulesText.includes('50'));
+  if (/46/.test(rulesText)) assert.ok(/Master Angler/.test(rulesText), '46 may appear only as the Master Angler award size');
+  assert.deepEqual(validateContent(c), []);
+});
