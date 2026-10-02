@@ -90,3 +90,9 @@ test('lessons: twelve chapters in order, fall and next at full depth', async () 
   if (/46/.test(rulesText)) assert.ok(/Master Angler/.test(rulesText), '46 may appear only as the Master Angler award size');
   assert.deepEqual(validateContent(c), []);
 });
+
+test('content never points at a home water, a home dock, or where anyone lives', async () => {
+  const c = await loadContent(fetchFn);
+  const hit = JSON.stringify(c).match(/home water|home dock|lives on|my dock|our dock/i);
+  assert.equal(hit, null, hit && hit[0]);
+});
