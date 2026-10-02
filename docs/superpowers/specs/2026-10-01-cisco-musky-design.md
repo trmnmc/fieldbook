@@ -363,7 +363,7 @@ Nothing blocks the planner or the log.
 
 **Phase 2, the week after.** Remaining lake maps and spots. Patterns mined from past fall reports. Spot statistics from the log. Own-log bonus in the planner. Moon-clock chart of your own fish.
 
-**Phase 3, if wanted.** Offline map view with spots drawn on it. A copy for Dad with his own log.
+**Phase 3, if wanted.** Move the site behind a login so it cannot be scraped: Cloudflare Pages with Cloudflare Access, or any host that puts authentication in front of the page. Decided by Truman on 2026-10-01: public with no secrets first, paid private later. A private GitHub repo alone does not do this, because a GitHub Pages URL stays public. Also: offline map view with spots drawn on it, and a copy for Dad with his own log.
 
 ## 11. Publishing steps
 
