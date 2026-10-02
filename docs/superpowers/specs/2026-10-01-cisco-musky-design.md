@@ -3,7 +3,7 @@
 Date: 2026-10-01
 Status: draft for review
 Path: architectural (new project)
-Repo: `cisco-musky`, public, published with GitHub Pages at `https://trmnmc.github.io/cisco-musky/`
+Repo: `fieldbook`, public, bland name and description, published with GitHub Pages at `https://trmnmc.github.io/fieldbook/`. Spots and the log never enter the repo.
 
 ## 1. Purpose and readers
 
@@ -15,6 +15,8 @@ Repo: `cisco-musky`, public, published with GitHub Pages at `https://trmnmc.gith
 **What it must be.** The expert on this chain. Not a generic musky app. It tells a veteran what he does not know yet: which of the 15 lakes hold musky, what the fish eat here, where the structure is, how fall plays out on this water, and which rulebook applies on which lake. It tells the beginner what each of those facts means and what his job is at that moment.
 
 **Where it runs.** Installed on the iPhone home screen. Fully offline on the water. No accounts, no server, no sync. The log never leaves the phone unless exported.
+
+**What stays secret.** A GitHub Pages site is a public URL whatever the repo visibility. So the published site holds only the app, the lessons, public DNR lake facts, the lure catalog, the pattern rules, and the rulebooks. Spots and the log are the secrets. Spots are never committed: the seed file lives in a gitignored `private/` folder, reaches the phone by AirDrop or Files, and is imported once. The log lives only on the phone. The repo name and description say nothing about where you fish. Decided by Truman on 2026-10-01.
 
 **When.** First usable version on 2026-10-02. Content grows after that.
 
@@ -35,7 +37,7 @@ Repo: `cisco-musky`, public, published with GitHub Pages at `https://trmnmc.gith
 |---|---|---|
 | Adopt, extend, or build | Build | Nothing musky-specific exists. Currents (MIT, Swift) has the feature shape but is native iOS 26 and carries none of the content. FishCast (MIT, static PWA) validates the mechanism but covers about a third of the need. See `docs/superpowers/specs/2026-10-01-scout-notes.md` for the candidate table. |
 | Platform | Static web app, no framework, no build step | Zero toolchain. Installs on iPhone from a URL. The service worker makes it offline. |
-| Hosting | GitHub Pages, public repo | iPhone installs offline web apps only over HTTPS. Pages is free and live in minutes. Guide content is public. The log stays on the phone. Approved by Truman. |
+| Hosting | GitHub Pages, public repo named `fieldbook`, description "Offline fishing planner" | iPhone installs offline web apps only over HTTPS. Pages is free and live in minutes. A Pages site is always public, so spots never enter the repo; they are delivered to the phone as a file and imported. Lake facts on the site are public DNR data. Approved by Truman, revised for privacy the same day. |
 | Waters | The Cisco Chain, all 15 lakes, Fishhawk included | Truman lives on Fishhawk. The chain is connected water with four public landings. |
 | Content order | Fall first, other seasons outlined | Fishing starts in October. |
 | Spots | Seeded from DNR maps and reports, labeled unverified | Gives a starting point tomorrow. Verified by fishing them. |
@@ -54,19 +56,28 @@ cisco-musky/
   manifest.webmanifest    name, icons, standalone display
   sw.js                   service worker: precache + runtime cache
   css/app.css             sunlight-readable, large tap targets, dark mode
-  js/app.js               router, views, navigation
+  js/app.js               router, navigation, update banner
+  js/ui/dom.js            tiny element helper
+  js/ui/plan.js           plan view
+  js/ui/trip.js           trip and event views
+  js/ui/learn.js          lessons and lakes views
+  js/ui/settings.js       settings, export, import
+  js/photos.js            camera capture and downscale
+  js/precache-manifest.js generated list of files the service worker precaches
+  scripts/precache.js     regenerates js/precache-manifest.js; run before each commit
+  package.json            "type": "module", test script, no dependencies
   js/content.js           loads and indexes the JSON content
   js/astro.js             suncalc wrapper: sun, moon, windows
   js/weather.js           Open-Meteo fetch, NWS fallback, pressure trend
   js/engine.js            pattern matching and ranking
-  js/planner.js           plan view: inputs, calls engine, renders reasons
-  js/log.js               trip and event capture
+  js/log.js               trip and event logic, snapshots, effort, rates
   js/store.js             IndexedDB wrapper
   js/export.js            JSON and CSV export, JSON import
   js/vendor/suncalc.js    vendored, BSD-2, with LICENSE
   content/lessons.json
   content/lakes.json
-  content/spots.json
+  content/spot-types.json  structure vocabulary only, no locations
+  private/spots-seed.json  gitignored; the seeded spots; never committed
   content/lures.json
   content/patterns.json
   content/rules.json
@@ -75,7 +86,11 @@ cisco-musky/
   icons/
   test/engine.test.js     Node test runner, no dependencies
   test/content.test.js    schema and cross-reference checks
-  test/astro.test.js      known moon events for the chain
+  test/astro.test.js      known sun and moon events for the chain
+  test/weather.test.js    Open-Meteo parsing, pressure trend, front detection
+  test/log.test.js        trips, events, effort, rates, adjustment notes
+  test/export.test.js     backup, Lunge Log CSV, spots pack import
+  test/precache.test.js   manifest lists every published file
 ```
 
 ### 3.2 Offline strategy
@@ -165,7 +180,7 @@ Fifteen records. Facts verified so far are in section 7.
   lureFamilies: [], notes, source, verified: false, addedBy: "seed" | "truman" | "dad" }
 ```
 
-Seeded for version one on Thousand Island, Cisco, Big, Mamie, and Fishhawk. Each seeded spot cites the map or report it came from. The log flips `verified` when a trip fishes it.
+Seeded for version one on Thousand Island, Cisco, Big, Mamie, and Fishhawk. Each seeded spot cites the map or report it came from. The log flips `verified` when a trip fishes it. Spots are never committed. The app loads spots only from IndexedDB. The seed arrives as a spots pack file, `{ "kind": "spots-pack", "spots": [...] }`, imported once through Settings.
 
 ### 4.4 lures.json
 
@@ -278,7 +293,7 @@ Muskies Inc records up to 28 fields per fish. The known fields are date, time, w
 
 ### 6.6 Export and import
 
-JSON: the whole database except photos, plus photos as separate files when sharing. CSV: catches in Lunge Log order, and a second CSV of all events. Import: a JSON file restores or merges by id. The app reminds once a month to export.
+JSON: the whole database except photos, plus photos as separate files when sharing. CSV: catches in Lunge Log order, and a second CSV of all events. Import: a backup JSON restores or merges by id, and a spots pack adds seeded spots without overwriting any spot that is not `addedBy: "seed"`. The app reminds once a month to export.
 
 ### 6.7 Dad's input
 
@@ -338,7 +353,8 @@ Nothing blocks the planner or the log.
 
 - `test/engine.test.js`: fixtures of condition objects and expected top window, spot type, and lure family. One fixture per fall pattern at minimum. Run with `node --test`.
 - `test/astro.test.js`: moonrise, moonset, and phase for known dates at the chain against published almanac values, within two minutes.
-- `test/content.test.js`: every JSON file parses; required fields present; every `sources` id exists; every spot's lat and lon fall inside the chain's bounding box; every lesson link target exists; every lake has a rules id; every rulebook has a verified date.
+- `test/precache.test.js`: the generated precache manifest lists every published file and nothing from `test/`, `scripts/`, `docs/`, or `private/`.
+- `test/content.test.js`: every JSON file parses, and `private/spots-seed.json` is validated too when it exists; required fields present; every `sources` id exists; every spot's lat and lon fall inside the chain's bounding box; every lesson link target exists; every lake has a rules id; every rulebook has a verified date.
 - On-phone checklist before calling version one done: install, airplane mode open, plan Thousand Island today, log a follow in three taps, log a catch with photo, export JSON through the share sheet, reload after a new publish.
 
 ## 10. Phases
@@ -351,9 +367,10 @@ Nothing blocks the planner or the log.
 
 ## 11. Publishing steps
 
-1. `gh repo create trmnmc/cisco-musky --public --source=. --push`. Approved by Truman on 2026-10-01.
+1. `gh repo create trmnmc/fieldbook --public --description "Offline fishing planner" --source=. --remote=origin --push`. Approved by Truman on 2026-10-01. `private/` is gitignored before the first push.
 2. Enable Pages from the main branch root.
-3. Open the URL in Safari on the iPhone, Add to Home Screen.
+3. Deliver `private/spots-seed.json` to the phone by AirDrop or Files. Import it in Settings.
+4. Open the URL in Safari on the iPhone, Add to Home Screen.
 
 ## 12. Assumptions
 
