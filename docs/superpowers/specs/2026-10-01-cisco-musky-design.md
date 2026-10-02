@@ -135,6 +135,10 @@ Chapters, in order:
 9. Gear and fish care. Rod, reel, line, leaders. Net, bump board, hook cutters, long pliers, jaw spreaders. Keep the fish in the water. Measure fast. Release.
 10. Rules on this chain. Three different size limits. Which license where. Registration. Pike rules. Catch and release all year.
 11. First mate. A basics-only chapter: how to help a veteran. Net work, release tools ready, calling follows, watching the sonar, matching his cadence, boat position on a drift, what to say and not say when a fish follows.
+12. What to do next. The adjustment chapter, track `both`. Three sections, each with pro reasoning, a plain "your job" line, and sources. Any claim without a named source is labeled "reasoning, not sourced" in the text.
+    - Nothing is happening. A checklist in order: are you inside a light or moon window or between them; are the weeds green and standing or brown and down; are you on the edge or on top of the structure; is the speed right, because the wrong speed costs more follows than the wrong lure; does the sonar show bait; has the wind moved off this structure. Change one thing at a time and give it twenty minutes. Your job: keep the clock, call the weeds, say what the sonar shows.
+    - A follow without a strike. The fish told you three things: it is there, the lure is close, the trigger is missing. Respond in order: speed first (faster in warm water, slower under 55°F), then the figure-8 (wider, deeper, faster on the turns), then size up or down, then a different family with the same action, then return in the next window. Mark the spot and the time. Your job: log the follow before the next cast, net ready, watch the fish on the 8 and say where it is.
+    - When to adjust. Depth: follows come up from deep under the lure, bait shows deeper on sonar, or water has cooled below 55°F. Retrieve: lazy follows mean change speed or add pauses; hot follows that turn away mean a bigger 8 and faster turns. Boat position: the wind has changed, you are casting with the wind instead of across the structure, or you are too close over water with 12 ft of visibility. Location: two windows with no sign of a fish, dead weeds, no bait, or the wind now loads a different lake. Your job: time the twenty minutes, say when a window opens or closes, have the next lure ready.
 
 ### 4.2 lakes.json
 
@@ -247,7 +251,7 @@ Plan, then Start Trip. The trip freezes the plan. On the water, events. Then End
 | Follow | 2 | size estimate, heat (lazy, hot, hit the 8), where seen (mid-retrieve, boat side), lure, color, speed, position on structure, depth under boat |
 | Strike | 2 | hooked or missed, lure, color, speed, position, depth under boat, on the 8 |
 | Catch | 3 | length, girth, lure, color, size, retrieve, where it hit, depth fish hit at, depth under boat, hook location, release time, photo, marks photo, marks note |
-| Note | 1 | free text, voice-to-text through the iOS keyboard |
+| Note | 1 | free text, voice-to-text through the iOS keyboard. Optional Adjustment toggle reveals: what changed (depth, retrieve, lure, boat position, location), why in Dad's words, and an outcome field filled later |
 | Bait seen | 1 | cisco, perch, sucker, bait ball on sonar |
 
 Tap counts mean: open the event, then save with the prefilled defaults (last lure, last spot, current conditions). Editing any field is optional and costs extra taps.
@@ -257,6 +261,8 @@ Every event stores a snapshot: time, lat, lon, moon phase, minutes to the neares
 Presentation fields on the trip or per event: casting, trolling (speed, running depth, line out, rod position), suckers (rig, sucker size, drifted or anchored).
 
 Spot fields per event: structure type, weed type, bottom, depth under boat, position (on top, edge, off the break, inside turn).
+
+**Adjustment notes.** No new screen. The Note form has an optional Adjustment toggle. On, it shows three fields: what changed, why, and outcome. Why is Dad's reasoning in his words. Outcome is optional and can be filled from the trip view afterward. The trip summary lists adjustments in sequence with the events that followed them, so the log answers: what did we change, why, and what happened next. Lesson 12 links here.
 
 ### 6.3 Effort
 
@@ -337,7 +343,7 @@ Nothing blocks the planner or the log.
 
 ## 10. Phases
 
-**Phase 1, 2026-10-02.** Everything in sections 3 to 6 at version-one depth. Eleven lessons with the fall sections at full depth and the rest outlined. Fifteen lake records. Seeded spots on five lakes. Lure catalog. Fall pattern rules. Planner. Log with photos. Export. Published on GitHub Pages.
+**Phase 1, 2026-10-02.** Everything in sections 3 to 6 at version-one depth. Twelve lessons with the fall sections and lesson 12 at full depth and the rest outlined. Fifteen lake records. Seeded spots on five lakes. Lure catalog. Fall pattern rules. Planner. Log with photos. Export. Published on GitHub Pages.
 
 **Phase 2, the week after.** Remaining lake maps and spots. Patterns mined from past fall reports. Spot statistics from the log. Own-log bonus in the planner. Moon-clock chart of your own fish.
 
