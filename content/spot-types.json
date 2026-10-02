@@ -1,0 +1,16 @@
+[
+  { "id": "weed_flat", "name": "Weed flat", "pro": "Broad shallow weed growth, 3 to 10 ft. Fish roam it in low light and when wind pushes bait onto it.", "yourJob": "Watch for the weed tops under the boat and say when they change." },
+  { "id": "weed_edge", "name": "Weed edge", "pro": "Where the weeds stop against deeper water. The outside edge is the ambush line most of the year.", "yourJob": "Keep the boat on the edge; call out when the sonar shows weeds ending." },
+  { "id": "point", "name": "Point", "pro": "Structure that reaches into deep water. Fish stage on the sides the wind loads.", "yourJob": "Cast across the point, not down it." },
+  { "id": "inside_turn", "name": "Inside turn", "pro": "A pocket in the breakline. Bait collects in it. Big fish sit in the corner.", "yourJob": "Slow the boat; the fish is in the corner, not the open side." },
+  { "id": "saddle", "name": "Saddle", "pro": "A shallow ridge between two deeper areas. Fish cross it on travel routes.", "yourJob": "Fish both sides before leaving." },
+  { "id": "hump", "name": "Hump", "pro": "A sunken island. Fish circle it; the deep side is the fall side.", "yourJob": "Mark the top with the sonar so we fish the whole rim." },
+  { "id": "break", "name": "Break", "pro": "A sharp depth change. Suspended fish hold off it in fall.", "yourJob": "Watch the depth number; say when it drops fast." },
+  { "id": "neck", "name": "Neck", "pro": "A channel between lakes. Current, bait, and travel. The chain's necks are its signature structure.", "yourJob": "Keep the boat out of the channel so we do not spook it." },
+  { "id": "inlet", "name": "Inlet", "pro": "Where a creek or lake enters. Cooler, oxygenated water in late summer; bait in fall.", "yourJob": "Look for current lines on the surface." },
+  { "id": "outlet", "name": "Outlet", "pro": "Where the lake drains. Current pulls bait; the dam end of Cisco is one.", "yourJob": "Watch for the no-boat line near a dam." },
+  { "id": "rock", "name": "Rock", "pro": "Gravel and boulders. Cisco spawn on it in late fall. Holds heat in spring.", "yourJob": "Say when the sonar bottom goes hard." },
+  { "id": "wood", "name": "Wood", "pro": "Logs and flooded timber from the 1931 raise. Ambush cover.", "yourJob": "Keep the lure above the wood; count it down." },
+  { "id": "island", "name": "Island", "pro": "An island's shoreline is a point and a weed edge in one.", "yourJob": "Fish the wind side first." },
+  { "id": "shoal", "name": "Shoal", "pro": "A shallow bar off a shoreline. Steep on this chain: sand, gravel, peat.", "yourJob": "Watch the trolling motor in the shallows." }
+]
