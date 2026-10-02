@@ -54,3 +54,23 @@ test('no content file contains a spot location', async () => {
   assert.ok(!('spots' in c));
   for (const l of c.lakes) assert.ok(!('spots' in l), l.id);
 });
+
+test('lures cover every family and carry temperature bands', async () => {
+  const c = await loadContent(fetchFn);
+  const fams = new Set(c.lures.map(l => l.family));
+  for (const f of ['bucktail', 'topwater', 'glider', 'jerkbait', 'crankbait', 'rubber', 'spinnerbait', 'sucker']) assert.ok(fams.has(f), f);
+  for (const l of c.lures) { assert.ok(Array.isArray(l.tempBandsF) && l.tempBandsF.every(b => b.length === 2 && b[0] < b[1]), l.id); assert.ok(['slow', 'medium', 'fast', 'burn'].includes(l.speed), l.id); }
+});
+
+test('patterns: at least 12 fall rules, each with pro, yourJob, and sources or reasoning', async () => {
+  const c = await loadContent(fetchFn);
+  const fall = c.patterns.filter(p => (p.when.months || [10]).some(m => m === 10 || m === 11));
+  assert.ok(fall.length >= 12, 'fall patterns: ' + fall.length);
+  for (const p of c.patterns) {
+    assert.ok(p.pro.length > 40 && p.yourJob.length > 10, p.id);
+    for (const k of Object.keys(p.favor)) assert.ok(['windows', 'spotTypes', 'lureFamilies', 'speed'].includes(k), p.id + ' favor ' + k);
+    for (const [k, v] of Object.entries(p.favor.lureFamilies || {})) assert.ok(c.lures.some(l => l.family === k) && Number.isInteger(v) && v >= 1 && v <= 5, p.id + ' ' + k);
+    for (const k of Object.keys(p.favor.spotTypes || {})) assert.ok(c.spotTypes.some(t => t.id === k), p.id + ' spot type ' + k);
+  }
+  assert.deepEqual(validateContent(c), []);
+});
