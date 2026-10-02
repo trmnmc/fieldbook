@@ -13,6 +13,11 @@ export async function downscaleImage(file, maxEdge = 1600, quality = 0.7) {
   return new Promise(res => c.toBlob(res, 'image/jpeg', quality));
 }
 
+// one named File per stored photo, so the share sheet gets them all in a single call
+export function photosToFiles(photos) {
+  return photos.map(p => new File([p.blob], `${p.eventId}-${p.role}.jpg`, { type: 'image/jpeg' }));
+}
+
 export async function savePhoto(db, eventId, blob, role = 'catch') {
   const rec = { id: newId('photo'), eventId, role, blob, createdAt: new Date().toISOString() };
   await db.put('photos', rec);

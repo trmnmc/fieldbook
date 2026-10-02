@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createMemoryStore } from '../js/store.js';
 import { EVENT_KINDS, snapshot, startTrip, addEvent, setOutcome, endTrip, effortBySpot, rates, verifySpots, tripTimeline, logStatsForPlanner } from '../js/log.js';
+import * as logMod from '../js/log.js';
 
 const cond = { lakeId: 'thousand-island', waterTempF: 62, sky: 'partly', windMph: 12, windCompass: 'W', pressureTrend: 'falling', pressureInHg: 29.85, clarity: 'clear', forecastAgeMin: 30 };
 const astro = { nearest: () => ({ kind: 'underfoot', minutes: 10 }), phase: () => ({ name: 'Waning Gibbous', fraction: 0.6 }) };
@@ -81,4 +82,20 @@ test('verifySpots flips seeded spots that were fished, and planner stats aggrega
   trip.endedAt = T(2); await db.put('trips', trip);
   const stats = logStatsForPlanner(await db.all('events'), await db.all('trips'));
   assert.equal(stats.a.follows, 2); assert.ok(Math.abs(stats.a.followsPerHour - 1) < 0.01);
+});
+
+test('addEvent never stores a Blob inside the event record; photos live in the photos store', async () => {
+  const { db, trip } = await seed();
+  const ev = await addEvent(db, trip.id, { kind: 'note', at: T(2), text: 'photo note', photoFile: new Blob(['x'], { type: 'image/jpeg' }) }, {});
+  const stored = await db.get('events', ev.id);
+  assert.ok(!('photoFile' in stored), 'photoFile was stored');
+  assert.equal(stored.text, 'photo note');
+});
+
+test('nearestSpot picks the closest spot inside the cap and nothing beyond it', () => {
+  const spots = [{ id: 'near', lat: 46.2400, lon: -89.3900 }, { id: 'far', lat: 46.2500, lon: -89.3900 }];
+  assert.equal(logMod.nearestSpot(spots, { lat: 46.2410, lon: -89.3900 }).id, 'near'); // about 110 m away
+  assert.equal(logMod.nearestSpot(spots, { lat: 46.2600, lon: -89.3900 }), null);      // about 1.1 km from the closest
+  assert.equal(logMod.nearestSpot([], { lat: 46.24, lon: -89.39 }), null);
+  assert.ok(Math.abs(logMod.distanceM({ lat: 46.24, lon: -89.39 }, { lat: 46.25, lon: -89.39 }) - 1112) < 10);
 });

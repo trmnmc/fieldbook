@@ -18,7 +18,8 @@ export function snapshot({ at, lat, lon, cond = {}, astro }) {
 }
 
 export async function startTrip(db, { lakeId, plan, cond, presentation = 'any' }) {
-  const trip = { id: newId('trip'), lakeId, startedAt: new Date().toISOString(), endedAt: null, plan: plan ?? null, cond: cond ?? null, presentation, rating: null, worked: '', notes: '' };
+  const now = new Date().toISOString();
+  const trip = { id: newId('trip'), lakeId, startedAt: now, endedAt: null, plan: plan ?? null, cond: cond ?? null, presentation, rating: null, worked: '', notes: '', updatedAt: now };
   await db.put('trips', trip);
   return trip;
 }
@@ -27,7 +28,8 @@ export async function addEvent(db, tripId, fields, snap) {
   if (!EVENT_KINDS.includes(fields.kind)) throw new Error('unknown event kind ' + fields.kind);
   if (fields.kind === 'catch' && !(fields.lengthIn > 0 && fields.lengthIn <= 70)) throw new Error('length must be 1 to 70 inches');
   if (fields.kind === 'note' && fields.adjustment && !['depth', 'retrieve', 'lure', 'boat_position', 'location'].includes(fields.adjustment.what)) throw new Error('unknown adjustment');
-  const event = { id: newId('evt'), tripId, at: fields.at || new Date().toISOString(), spotId: fields.spotId ?? null, snapshot: snap ?? null, ...fields };
+  const event = { id: newId('evt'), tripId, at: fields.at || new Date().toISOString(), spotId: fields.spotId ?? null, snapshot: snap ?? null, ...fields, updatedAt: new Date().toISOString() };
+  for (const [k, v] of Object.entries(event)) if (typeof Blob !== 'undefined' && v instanceof Blob) delete event[k]; // photos live in the photos store, never inside the event
   if (event.kind === 'catch' && event.lengthIn && event.girthIn) event.estWeightLb = Math.round((event.lengthIn * event.girthIn * event.girthIn) / 800 * 10) / 10;
   await db.put('events', event);
   return event;
@@ -37,6 +39,7 @@ export async function setOutcome(db, eventId, outcome) {
   const e = await db.get('events', eventId);
   if (!e || !e.adjustment) throw new Error('not an adjustment note');
   e.adjustment = { ...e.adjustment, outcome };
+  e.updatedAt = new Date().toISOString();
   await db.put('events', e);
   return e;
 }
@@ -44,7 +47,8 @@ export async function setOutcome(db, eventId, outcome) {
 export async function endTrip(db, tripId, { rating = null, worked = '', notes = '' } = {}) {
   const t = await db.get('trips', tripId);
   if (!t) throw new Error('no trip ' + tripId);
-  Object.assign(t, { endedAt: new Date().toISOString(), rating, worked, notes });
+  const now = new Date().toISOString();
+  Object.assign(t, { endedAt: now, rating, worked, notes, updatedAt: now });
   await db.put('trips', t);
   return t;
 }
@@ -80,8 +84,23 @@ export function rates(events, trip) {
 export async function verifySpots(db, events) {
   const fished = new Set(events.filter(e => e.spotId).map(e => e.spotId));
   const flipped = [];
-  for (const id of fished) { const s = await db.get('spots', id); if (s && s.verified === false) { s.verified = true; s.verifiedAt = new Date().toISOString(); await db.put('spots', s); flipped.push(id); } }
+  for (const id of fished) { const s = await db.get('spots', id); if (s && s.verified === false) { const now = new Date().toISOString(); s.verified = true; s.verifiedAt = now; s.updatedAt = now; await db.put('spots', s); flipped.push(id); } }
   return flipped.sort();
+}
+
+const EARTH_M = 6371000;
+export function distanceM(a, b) {
+  const rad = d => d * Math.PI / 180;
+  const dLat = rad(b.lat - a.lat), dLon = rad(b.lon - a.lon);
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * EARTH_M * Math.asin(Math.sqrt(s));
+}
+
+// the closest spot within maxM metres of pos, or null: a follow in open water belongs to no spot
+export function nearestSpot(spots, pos, maxM = 250) {
+  let best = null, bestD = Infinity;
+  for (const s of spots) { if (s.lat == null || s.lon == null) continue; const d = distanceM(pos, s); if (d < bestD) { best = s; bestD = d; } }
+  return best && bestD <= maxM ? best : null;
 }
 
 export function logStatsForPlanner(allEvents, trips) {

@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createMemoryStore } from '../js/store.js';
 import { LUNGE_LOG_COLUMNS, csvEscape, catchesToCsv, eventsToCsv, toBackupJson, importJson } from '../js/export.js';
+import { startTrip, addEvent, endTrip, setOutcome, verifySpots } from '../js/log.js';
 
 const lakes = [{ id: 'thousand-island', name: 'Thousand Island Lake', states: ['MI'] }];
 const lures = [{ id: 'glider-10', family: 'glider', example: '10 inch glider', sizeIn: 10 }];
@@ -65,4 +66,23 @@ test('spots pack never overwrites a user-edited or verified spot', async () => {
   assert.equal((await db.get('spots', 'a')).name, 'North flat (Dad)');
   assert.equal((await db.get('spots', 'b')).notes, 'v2');
   await assert.rejects(importJson(db, { kind: 'nope' }));
+});
+
+test('an older backup never reverts a trip ended, an outcome added, or a spot verified since it was taken', async () => {
+  const db = createMemoryStore();
+  const t = await startTrip(db, { lakeId: 'thousand-island', plan: {}, cond: {}, presentation: 'any' });
+  await db.put('spots', { id: 'a', name: 'North flat', addedBy: 'seed', verified: false, lakeId: 'thousand-island', lat: 1, lon: 1, type: 'weed_flat' });
+  const follow = await addEvent(db, t.id, { kind: 'follow', spotId: 'a', heat: 'lazy' }, {});
+  const note = await addEvent(db, t.id, { kind: 'note', text: 'x', adjustment: { what: 'lure', why: 'y', outcome: null } }, {});
+  const old = await toBackupJson(db); // taken before the trip ended
+  await new Promise(r => setTimeout(r, 5));
+  await endTrip(db, t.id, { rating: 4 });
+  await setOutcome(db, note.id, 'it worked');
+  await verifySpots(db, await db.all('events'));
+  const r = await importJson(db, old);
+  assert.equal(r.added, 0); assert.equal(r.updated, 0);
+  assert.ok((await db.get('trips', t.id)).endedAt, 'the trip was reopened');
+  assert.equal((await db.get('events', note.id)).adjustment.outcome, 'it worked');
+  assert.equal((await db.get('spots', 'a')).verified, true);
+  assert.equal((await db.get('events', follow.id)).heat, 'lazy');
 });

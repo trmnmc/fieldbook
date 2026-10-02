@@ -39,7 +39,7 @@ export async function importJson(db, obj) {
   if (obj?.kind === 'backup') {
     for (const store of ['trips', 'events', 'spots', 'settings']) for (const rec of obj[store] || []) {
       const cur = await db.get(store, rec.id);
-      if (cur && cur.updatedAt && rec.updatedAt && cur.updatedAt > rec.updatedAt) { r.skipped++; continue; }
+      if (cur && cur.updatedAt && (!rec.updatedAt || cur.updatedAt >= rec.updatedAt)) { r.skipped++; continue; } // the phone's copy is at least as new: keep it
       await db.put(store, rec); cur ? r.updated++ : r.added++;
     }
     return r;
