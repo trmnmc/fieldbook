@@ -1,2 +1,2 @@
-export const VERSION = 'a3cbec9-mur3s8r4';
+export const VERSION = 'a2b7c70-mur45onb';
 export const PRECACHE = ["content/lakes.json","content/lessons.json","content/lures.json","content/patterns.json","content/rules.json","content/sources.json","content/spot-types.json","css/app.css","icons/icon-180.png","icons/icon-192.png","icons/icon-512.png","icons/icon.svg","index.html","js/app.js","js/astro.js","js/content.js","js/engine.js","js/export.js","js/log.js","js/photos.js","js/precache-manifest.js","js/store.js","js/ui/dom.js","js/ui/learn.js","js/ui/plan.js","js/ui/settings.js","js/ui/trip.js","js/vendor/LICENSE-suncalc","js/vendor/suncalc.js","js/weather.js","manifest.webmanifest","maps/big.jpg","maps/cisco.jpg","maps/record.jpg","maps/thousand-island.jpg"];
